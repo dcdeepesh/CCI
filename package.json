@@ -4,7 +4,7 @@
 	"icon": "extIcon.png",
 	"displayName": "CodeChef Integeration",
 	"description": "CodeChef integration and automation",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"engines": {
 		"vscode": "^1.60.0"
 	},
@@ -24,6 +24,10 @@
 				"command": "cci.submit",
 				"title": "Sumbit to CodeChef",
 				"icon": "buttonIcon.svg"
+			},
+			{
+				"command": "cci.clear",
+				"title": "Clear CodeChef credetials"
 			}
 		],
 		"menus": {

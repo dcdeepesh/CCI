@@ -251,12 +251,19 @@ async function login(context) {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+    context.subscriptions.push(vscode.commands.registerCommand('cci.clear', () => {
+        context.globalState.update('cci.cookie', '');
+        context.globalState.update('cci.expiry', '');
+        context.globalState.update('cci.csrfToken', '');
+        vscode.window.showInformationMessage('CodeChef credentials cleared');
+    }));
+
 	context.subscriptions.push(vscode.commands.registerCommand('cci.submit', async uri => {
         // login if required
         cookie = context.globalState.get('cci.cookie');
         csrfToken = context.globalState.get('cci.csrfToken');
         var expiry = context.globalState.get('cci.expiry');
-        if (cookie === undefined || csrfToken === undefined ||
+        if (cookie === undefined || csrfToken === undefined ||// cookie.length === 0 ||
             expiry === undefined || Date.now() >= expiry) {
             login(context);
             return;
