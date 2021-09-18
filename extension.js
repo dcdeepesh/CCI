@@ -5,7 +5,6 @@ const path = require('path');
 
 var cookie = undefined;
 var csrfToken = undefined;
-var initialized = false;
 var problemCodes = [];
 var startQno = -1;
 
@@ -38,10 +37,6 @@ async function initConfig() {
         vscode.window.showErrorMessage('Multiple configurations found');
     else if (!(await parseConfig(fileUris[0])))
         vscode.window.showErrorMessage('Invalid configuration');
-    else
-        initialized = true;
-
-    return initialized;
 }
 
 /**
@@ -270,19 +265,17 @@ function activate(context) {
         }
 
         // configure if required
-		if (!initialized)
-            if (!(await initConfig()))
-                return;
+		await initConfig();
 
         // get problem code and source code
         var matches = path.basename(uri.fsPath).match(/\d+/);
         if (matches === null || matches.length === 0) {
-            vscode.window.showErrorMessage('Invalid filename (check config?)');
+            vscode.window.showErrorMessage('Invalid filename (does not contain number');
             return;
         }
         var qno = parseInt(matches[0]);
         if (qno - startQno > problemCodes.length) {
-            vscode.window.showErrorMessage('Invalid filename (check config?)');
+            vscode.window.showErrorMessage(`Invalid filename (check config?) ${qno}-${startQno}>${problemCodes.length}`);
             return;
         }
         var problemCode = problemCodes[qno - startQno];
