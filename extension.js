@@ -13,6 +13,8 @@ async function initConfig() {
     * @param {vscode.Uri} uri
     */
     async function parseConfig(uri) {
+        problemCodes = []
+        startQno = -1
         var configFile = await vscode.workspace.openTextDocument(uri);
         for (var i = 0; i < configFile.lineCount; i++) {
             var line = configFile.lineAt(i).text.trim();
@@ -258,7 +260,7 @@ function activate(context) {
         cookie = context.globalState.get('cci.cookie');
         csrfToken = context.globalState.get('cci.csrfToken');
         var expiry = context.globalState.get('cci.expiry');
-        if (cookie === undefined || csrfToken === undefined ||// cookie.length === 0 ||
+        if (cookie === undefined || csrfToken === undefined ||
             expiry === undefined || Date.now() >= expiry) {
             login(context);
             return;
@@ -284,7 +286,7 @@ function activate(context) {
         // submit
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: 'Submitting',
+            title: `Submitting (${problemCode})`,
             cancellable: false
         }, async progress => {
             progress.report({ message: 'Uploading'});
