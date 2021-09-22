@@ -72,6 +72,20 @@ function uploadCode(problemCode, code) {
     });
 }
 
+function showCompilationError(subUrl) {
+    const url = `https://www.codechef.com/${subUrl}`;
+    const headers = {
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cookie': cookie,
+        //'Referer': `https://www.codechef.com/submit/${problemCode}`,
+        //'Origin': 'https://www.codechef.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
+        //'x-csrf-token': csrfToken,
+        //'X-Requested-With': 'XMLHttpRequest'
+    };
+}
+
 /**
  * @param {string} upid
  * @param {string} problemCode
@@ -116,10 +130,14 @@ function waitForResult(upid, problemCode) {
                 vscode.window.showInformationMessage('• Partially correct answer');
             else if (res.result_code === 'wrong')
                 vscode.window.showInformationMessage('❌ Wrong answer');
+            else if (res.result_code === 'time')
+                vscode.window.showInformationMessage('❌ Time limit exceeded');
             else if (res.result_code === 'compile')
-                vscode.window.showInformationMessage('❌ Compilation error');
+                vscode.window.showInformationMessage('❌ Compilation error', 'Show error');
+            else if (res.result_code === 'runtime')
+                vscode.window.showInformationMessage(`❌ Runtime error (${res.signal})`);
             else if (res.result_code === 'error')
-                vscode.window.showInformationMessage('❌ Runtime error');
+                vscode.window.showInformationMessage('❌ Error');
             else
                 vscode.window.showInformationMessage(`• Submission status: ${res.result_code}`);
 
@@ -244,6 +262,27 @@ async function login(context) {
     });
 }
 
+async function viewProblemStatent(problemCode) {
+    const url = `https://cci-prerender.herokuapp.com/https://www.codechef.com/problems/${problemCode}`;
+
+    var promise = new Promise(resolve => {
+        var response = ''
+        https.get(url, res => {
+            res.on('data', msg => response += msg);
+            res.on('end', () => resolve(response));
+        });
+    });
+
+    var panel = vscode.window.createWebviewPanel(
+        'cci.problemStatement',
+        'Problem statement',
+        {
+            viewColumn: vscode.ViewColumn.Beside
+        });
+    panel.webview.html = 'Loading problem statement...';
+    panel.webview.html = await promise;
+}
+
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -253,6 +292,36 @@ function activate(context) {
         context.globalState.update('cci.expiry', '');
         context.globalState.update('cci.csrfToken', '');
         vscode.window.showInformationMessage('CodeChef credentials cleared');
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cci.statement', async uri => {
+        // login if required
+        cookie = context.globalState.get('cci.cookie');
+        csrfToken = context.globalState.get('cci.csrfToken');
+        var expiry = context.globalState.get('cci.expiry');
+        if (cookie === undefined || csrfToken === undefined ||
+            expiry === undefined || Date.now() >= expiry) {
+            login(context);
+            return;
+        }
+
+        // configure if required
+		await initConfig();
+
+        // get problem code and source code
+        var matches = path.basename(uri.fsPath).match(/\d+/);
+        if (matches === null || matches.length === 0) {
+            vscode.window.showErrorMessage('Invalid filename (does not contain number)');
+            return;
+        }
+        var qno = parseInt(matches[0]);
+        if (qno - startQno > problemCodes.length) {
+            vscode.window.showErrorMessage(`Invalid filename (check config?) [${qno}-${startQno}>${problemCodes.length}]`);
+            return;
+        }
+        var problemCode = problemCodes[qno - startQno];
+
+        viewProblemStatent(problemCode);
     }));
 
 	context.subscriptions.push(vscode.commands.registerCommand('cci.submit', async uri => {
@@ -272,12 +341,12 @@ function activate(context) {
         // get problem code and source code
         var matches = path.basename(uri.fsPath).match(/\d+/);
         if (matches === null || matches.length === 0) {
-            vscode.window.showErrorMessage('Invalid filename (does not contain number');
+            vscode.window.showErrorMessage('Invalid filename (does not contain number)');
             return;
         }
         var qno = parseInt(matches[0]);
         if (qno - startQno > problemCodes.length) {
-            vscode.window.showErrorMessage(`Invalid filename (check config?) ${qno}-${startQno}>${problemCodes.length}`);
+            vscode.window.showErrorMessage(`Invalid filename (check config?) [${qno}-${startQno}>${problemCodes.length}]`);
             return;
         }
         var problemCode = problemCodes[qno - startQno];
